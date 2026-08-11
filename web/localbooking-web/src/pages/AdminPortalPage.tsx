@@ -1,44 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Facility } from '../types';
+import { searchFacilities } from '../services/api';
 import { Shield, CheckCircle, XCircle, FileText, Building, Users, DollarSign } from 'lucide-react';
 
 export const AdminPortalPage: React.FC = () => {
   const [commissionRate, setCommissionRate] = useState('10.0');
-  const [facilities, setFacilities] = useState([
-    {
-      id: 'f1',
-      name: 'Aluva Railway Station Premium Parking',
-      owner: 'Aravind (Owner)',
-      type: 'PARKING',
-      district: 'Ernakulam',
-      status: 'APPROVED',
-      landDocument: 'Verified (Land Authorization Letter.pdf)'
-    },
-    {
-      id: 'f2',
-      name: 'ABC Sports Arena Kakkanad',
-      owner: 'Kochi Sports Group',
-      type: 'SPORTS',
-      district: 'Ernakulam',
-      status: 'APPROVED',
-      landDocument: 'Verified (Sports Arena License.pdf)'
-    },
-    {
-      id: 'f3',
-      name: 'Thrissur Station Private Bike Parking',
-      owner: 'Sunil Kumar',
-      type: 'PARKING',
-      district: 'Thrissur',
-      status: 'PENDING_REVIEW',
-      landDocument: 'Uploaded (Land_Tax_Receipt_2026.pdf)'
-    }
-  ]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleApprove = (id: string) => {
-    setFacilities(facilities.map(f => f.id === id ? { ...f, status: 'APPROVED' } : f));
+  useEffect(() => {
+    fetchAdminFacilities();
+  }, []);
+
+  const fetchAdminFacilities = async () => {
+    setLoading(true);
+    const data = await searchFacilities({});
+    
+    // Add default Thrissur pending review demo facility if not present
+    const hasThrissur = data.some(f => f.name.includes('Thrissur'));
+    if (!hasThrissur) {
+      data.push({
+        facilityId: 'f-thrissur-pending',
+        name: 'Thrissur Station Private Bike Parking',
+        description: 'Private bike parking lot near Thrissur Railway Station North Exit.',
+        address: 'Station Road, West Fort, Thrissur',
+        district: 'Thrissur',
+        state: 'Kerala',
+        postalCode: '680001',
+        latitude: 10.5186,
+        longitude: 76.2144,
+        landmark: 'Near Thrissur Station North Exit',
+        distanceKm: 0.5,
+        is24Hours: true,
+        openingTime: '00:00',
+        closingTime: '23:59',
+        facilityType: 'PARKING',
+        status: 'PENDING_REVIEW',
+        rating: 4.8,
+        reviewCount: 0,
+        photos: [],
+        features: ['Security Guard', '24 Hours'],
+        parkingAreas: [],
+        resources: []
+      });
+    }
+
+    setFacilities(data);
+    setLoading(false);
   };
 
-  const handleReject = (id: string) => {
-    setFacilities(facilities.map(f => f.id === id ? { ...f, status: 'REJECTED' } : f));
+  const handleApprove = (facilityId: string) => {
+    setFacilities(facilities.map(f => f.facilityId === facilityId ? { ...f, status: 'APPROVED' } : f));
+  };
+
+  const handleReject = (facilityId: string) => {
+    setFacilities(facilities.map(f => f.facilityId === facilityId ? { ...f, status: 'REJECTED' } : f));
   };
 
   return (
@@ -61,8 +77,10 @@ export const AdminPortalPage: React.FC = () => {
             <span>Total Facilities</span>
             <Building size={16} color="#10b981" />
           </div>
-          <div className="kpi-card-value">24</div>
-          <div className="kpi-card-footer" style={{ color: '#34d399' }}>22 Approved | 2 Pending Review</div>
+          <div className="kpi-card-value">{facilities.length}</div>
+          <div className="kpi-card-footer" style={{ color: '#34d399' }}>
+            {facilities.filter(f => f.status === 'APPROVED').length} Approved | {facilities.filter(f => f.status === 'PENDING_REVIEW').length} Pending Review
+          </div>
         </div>
 
         <div className="kpi-card">
@@ -71,7 +89,7 @@ export const AdminPortalPage: React.FC = () => {
             <DollarSign size={16} color="#10b981" />
           </div>
           <div className="kpi-card-value" style={{ color: '#34d399' }}>₹1,48,200</div>
-          <div style={{ fontSize: '0.725rem', color: '#94a3b8' }}>Platform Revenue (10%): ₹14,820</div>
+          <div style={{ fontSize: '0.725rem', color: '#94a3b8' }}>Platform Commission (10%): ₹14,820</div>
         </div>
 
         <div className="kpi-card">
@@ -104,69 +122,79 @@ export const AdminPortalPage: React.FC = () => {
           </div>
         </div>
 
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Facility Name</th>
-              <th>Owner Name</th>
-              <th>Category</th>
-              <th>Land / License Document</th>
-              <th>Approval Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {facilities.map((fac) => (
-              <tr key={fac.id}>
-                <td style={{ fontWeight: 700, color: 'white' }}>{fac.name}</td>
-                <td>{fac.owner}</td>
-                <td>
-                  <span className={`badge-tag ${fac.type === 'PARKING' ? 'parking' : 'sports'}`} style={{ position: 'static' }}>
-                    {fac.type}
-                  </span>
-                </td>
-                <td style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1' }}>
-                  <FileText size={14} color="#3b82f6" />
-                  <span>{fac.landDocument}</span>
-                </td>
-                <td>
-                  <span style={{
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    background: fac.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.15)' : fac.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                    color: fac.status === 'APPROVED' ? '#34d399' : fac.status === 'REJECTED' ? '#f87171' : '#fbbf24',
-                    border: `1px solid ${fac.status === 'APPROVED' ? 'var(--border-emerald)' : fac.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-amber)'}`
-                  }}>
-                    {fac.status}
-                  </span>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  {fac.status === 'PENDING_REVIEW' && (
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      <button
-                        onClick={() => handleApprove(fac.id)}
-                        style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid var(--border-emerald)', color: '#34d399', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <CheckCircle size={12} /> Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(fac.id)}
-                        style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <XCircle size={12} /> Reject
-                      </button>
-                    </div>
-                  )}
-                  {fac.status === 'APPROVED' && (
-                    <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Live on Marketplace</span>
-                  )}
-                </td>
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading facilities for review...</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Facility Name</th>
+                <th>District / Location</th>
+                <th>Category</th>
+                <th>Land / License Document</th>
+                <th>Approval Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {facilities.map((fac) => {
+                const docName = fac.status === 'APPROVED' 
+                  ? 'Verified (Land_Authorization_Proof.pdf)'
+                  : 'Uploaded (Land_Tax_Receipt_2026.pdf)';
+
+                return (
+                  <tr key={fac.facilityId}>
+                    <td style={{ fontWeight: 700, color: 'white' }}>{fac.name}</td>
+                    <td style={{ color: '#cbd5e1' }}>{fac.district} ({fac.landmark || 'Kerala'})</td>
+                    <td>
+                      <span className={`badge-tag ${fac.facilityType === 'PARKING' ? 'parking' : 'sports'}`} style={{ position: 'static' }}>
+                        {fac.facilityType}
+                      </span>
+                    </td>
+                    <td style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1' }}>
+                      <FileText size={14} color="#3b82f6" />
+                      <span>{docName}</span>
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        background: fac.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.15)' : fac.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        color: fac.status === 'APPROVED' ? '#34d399' : fac.status === 'REJECTED' ? '#f87171' : '#fbbf24',
+                        border: `1px solid ${fac.status === 'APPROVED' ? 'var(--border-emerald)' : fac.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-amber)'}`
+                      }}>
+                        {fac.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {fac.status === 'PENDING_REVIEW' && (
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <button
+                            onClick={() => handleApprove(fac.facilityId)}
+                            style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid var(--border-emerald)', color: '#34d399', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <CheckCircle size={12} /> Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(fac.facilityId)}
+                            style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <XCircle size={12} /> Reject
+                          </button>
+                        </div>
+                      )}
+                      {fac.status === 'APPROVED' && (
+                        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Live on Marketplace</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
     </div>

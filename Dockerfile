@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project files for restore optimization
@@ -15,12 +15,12 @@ COPY src/ src/
 WORKDIR "/src/src/LocalBooking.API"
 RUN dotnet publish "LocalBooking.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Stage 2: Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+# Stage 2: Runtime stage (.NET 8 runtime)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Render dynamically binds to port 8080 or PORT env variable
+# Set default port to 8080 (supported by Render & .NET 8)
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 

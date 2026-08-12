@@ -97,11 +97,13 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 // Configure HTTP Pipeline
-if (app.Environment.IsDevelopment())
+// Enable Swagger UI for easy API testing in both Dev and Production
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "LocalBooking API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseCors("AllowAll");
 app.UseAuthentication();
@@ -124,4 +126,5 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run("http://localhost:5168");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5168";
+app.Run($"http://0.0.0.0:{port}");

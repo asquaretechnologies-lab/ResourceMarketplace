@@ -34,7 +34,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialRo
     try {
       if (isLoginView) {
         try {
-          const res = await axios.post('http://localhost:5168/api/auth/login', {
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5168/api';
+          const res = await axios.post(`${API_BASE_URL}/auth/login`, {
             emailOrMobile,
             password
           });

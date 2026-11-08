@@ -3,13 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 import { OwnerFacilityRegistrationModal } from './OwnerFacilityRegistrationModal';
 import { Facility } from '../types';
-import { Activity, Car, QrCode, LayoutDashboard, Shield, MapPin, User, LogOut, PlusCircle } from 'lucide-react';
+import { Activity, Car, Bike, QrCode, LayoutDashboard, Shield, MapPin, User, LogOut, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
   currentView: 'search' | 'bookings' | 'owner' | 'admin';
   setCurrentView: (view: 'search' | 'bookings' | 'owner' | 'admin') => void;
-  activeCategory: 'ALL' | 'SPORTS' | 'PARKING';
-  setActiveCategory: (cat: 'ALL' | 'SPORTS' | 'PARKING') => void;
+  activeCategory: 'ALL' | 'SPORTS' | 'PARKING' | 'RENTAL';
+  setActiveCategory: (cat: 'ALL' | 'SPORTS' | 'PARKING' | 'RENTAL') => void;
   onFacilityCreated?: (facility: Facility) => void;
 }
 
@@ -80,6 +80,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Car size={14} />
                 Station Parking
+              </button>
+              <button
+                onClick={() => setActiveCategory('RENTAL')}
+                className={`category-btn ${activeCategory === 'RENTAL' ? 'active-sports' : ''}`}
+              >
+                <Bike size={14} />
+                Tourist Rentals
               </button>
             </div>
           )}

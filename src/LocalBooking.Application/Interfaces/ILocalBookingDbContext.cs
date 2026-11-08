@@ -40,6 +40,21 @@ public interface ILocalBookingDbContext
     DbSet<OwnerBankAccount> OwnerBankAccounts { get; }
     DbSet<AuditLog> AuditLogs { get; }
 
+    // Vehicle Rentals
+    DbSet<VehicleModel> VehicleModels { get; }
+    DbSet<RentalPlan> RentalPlans { get; }
+    DbSet<Vehicle> Vehicles { get; }
+    DbSet<VehiclePhoto> VehiclePhotos { get; }
+    DbSet<VehicleMaintenance> VehicleMaintenances { get; }
+    DbSet<Driver> Drivers { get; }
+    DbSet<RenterProfile> RenterProfiles { get; }
+    DbSet<RenterDocument> RenterDocuments { get; }
+    DbSet<ShopRenterFlag> ShopRenterFlags { get; }
+    DbSet<RentalAgreement> RentalAgreements { get; }
+    DbSet<VehicleInspection> VehicleInspections { get; }
+    DbSet<RentalCharge> RentalCharges { get; }
+    DbSet<SecurityDeposit> SecurityDeposits { get; }
+
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

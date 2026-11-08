@@ -10,35 +10,72 @@ const api = axios.create({
   },
 });
 
+// Attach the logged-in user's JWT (saved by AuthContext) to every request.
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('localbooking_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+/**
+ * Mock data is ONLY allowed in local development when explicitly enabled
+ * via VITE_USE_MOCKS=true. In production, API failures are surfaced to the UI
+ * so owners/customers never see fabricated bookings or check-ins.
+ */
+export const USE_MOCKS = import.meta.env.DEV && import.meta.env.VITE_USE_MOCKS === 'true';
+
+/** Converts axios/network errors into a user-friendly message. */
+export const getApiErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) return 'Cannot reach the server. Please check your internet connection and try again.';
+    const msg = (error.response.data as { message?: string } | undefined)?.message;
+    if (msg) return msg;
+    if (error.response.status === 401) return 'Please log in to continue.';
+    if (error.response.status === 403) return 'You do not have permission to perform this action.';
+    return `Server error (${error.response.status}). Please try again.`;
+  }
+  return error instanceof Error ? error.message : 'Unexpected error occurred.';
+};
+
+/** Runs a real API call; falls back to mock data only when USE_MOCKS is on. */
+const withDevFallback = async <T>(call: () => Promise<T>, mock: () => T): Promise<T> => {
+  try {
+    return await call();
+  } catch (error) {
+    if (USE_MOCKS) {
+      console.warn('[DEV MOCK] API call failed, returning mock data:', error);
+      return mock();
+    }
+    throw new Error(getApiErrorMessage(error));
+  }
+};
+
 export const searchFacilities = async (params: {
   keyword?: string;
   facilityType?: string;
   district?: string;
   startDateTime?: string;
   endDateTime?: string;
-}): Promise<Facility[]> => {
-  try {
-    const response = await api.get('/facilities/search', { params });
-    return response.data.data;
-  } catch (error) {
-    console.warn('API unavailable, returning mock Kerala facilities data for preview:', error);
-    return getMockFacilities(params.facilityType);
-  }
-};
+}): Promise<Facility[]> =>
+  withDevFallback(
+    async () => (await api.get('/facilities/search', { params })).data.data,
+    () => getMockFacilities(params.facilityType)
+  );
 
-export const getFacilityById = async (id: string): Promise<Facility | null> => {
-  try {
-    const response = await api.get(`/facilities/${id}`);
-    return response.data.data;
-  } catch (error) {
-    const mock = getMockFacilities();
-    return mock.find(f => f.facilityId === id) || mock[0];
-  }
-};
+export const getFacilityById = async (id: string): Promise<Facility | null> =>
+  withDevFallback(
+    async () => (await api.get(`/facilities/${id}`)).data.data,
+    () => {
+      const mock = getMockFacilities();
+      return mock.find(f => f.facilityId === id) || mock[0];
+    }
+  );
 
 export const createBooking = async (bookingData: {
   facilityId: string;
-  bookingType: 'SPORTS' | 'PARKING';
+  bookingType: 'SPORTS' | 'PARKING' | 'RENTAL';
   startDateTime: string;
   endDateTime: string;
   resourceId?: string;
@@ -47,13 +84,10 @@ export const createBooking = async (bookingData: {
   vehicleNumber?: string;
   quantity?: number;
   couponCode?: string;
-}): Promise<Booking> => {
-  try {
-    const response = await api.post('/bookings', bookingData);
-    return response.data.data;
-  } catch (error) {
-    console.warn('Backend API error or unauthenticated, generating booking ticket:', error);
-    return {
+}): Promise<Booking> =>
+  withDevFallback(
+    async () => (await api.post('/bookings', bookingData)).data.data,
+    () => ({
       bookingId: 'demo-booking-1',
       bookingNumber: `${bookingData.bookingType.slice(0, 4).toUpperCase()}-20260811-000125`,
       facilityId: bookingData.facilityId,
@@ -73,16 +107,13 @@ export const createBooking = async (bookingData: {
       vehicleNumber: bookingData.vehicleNumber || 'KL 07 AB 1234',
       resourceName: bookingData.bookingType === 'PARKING' ? 'Car Parking' : '7\'s Football Turf 1',
       createdDate: new Date().toISOString()
-    };
-  }
-};
+    })
+  );
 
-export const getMyBookings = async (): Promise<Booking[]> => {
-  try {
-    const response = await api.get('/bookings/my-bookings');
-    return response.data.data;
-  } catch (error) {
-    return [
+export const getMyBookings = async (): Promise<Booking[]> =>
+  withDevFallback(
+    async () => (await api.get('/bookings/my-bookings')).data.data,
+    () => [
       {
         bookingId: 'b1111111-1111-1111-1111-111111111111',
         bookingNumber: 'PARK-20260811-000125',
@@ -104,16 +135,14 @@ export const getMyBookings = async (): Promise<Booking[]> => {
         resourceName: 'Car Parking Space',
         createdDate: new Date(Date.now() - 3600000).toISOString()
       }
-    ];
-  }
-};
+    ]
+  );
 
-export const processCheckIn = async (qrTokenOrBookingNum: string): Promise<CheckInResult> => {
-  try {
-    const response = await api.post('/bookings/check-in', { qrCodeTokenOrBookingNumber: qrTokenOrBookingNum });
-    return response.data.data;
-  } catch (error) {
-    return {
+export const processCheckIn = async (qrTokenOrBookingNum: string): Promise<CheckInResult> =>
+  withDevFallback(
+    async () =>
+      (await api.post('/bookings/check-in', { qrCodeTokenOrBookingNumber: qrTokenOrBookingNum })).data.data,
+    () => ({
       success: true,
       message: `Verified successfully! Vehicle KL 07 AB 1234 checked in at ${new Date().toLocaleTimeString()}.`,
       action: 'CHECKED_IN',
@@ -138,9 +167,88 @@ export const processCheckIn = async (qrTokenOrBookingNum: string): Promise<Check
         resourceName: 'Car Parking',
         createdDate: new Date().toISOString()
       }
-    };
-  }
+    })
+  );
+
+// =============================================================================
+// OWNER VEHICLE RENTALS API (Fleet, Digital Register, Handover, Today Board)
+// =============================================================================
+
+export const getVehicleModels = async (): Promise<any[]> => {
+  const response = await api.get('/owner/rentals/vehicle-models');
+  return response.data.data;
 };
+
+export const getOwnerVehicles = async (facilityId: string): Promise<any[]> => {
+  const response = await api.get('/owner/rentals/vehicles', { params: { facilityId } });
+  return response.data.data;
+};
+
+export const createVehicle = async (vehicleData: any): Promise<any> => {
+  const response = await api.post('/owner/rentals/vehicles', vehicleData);
+  return response.data.data;
+};
+
+export const updateVehicleStatus = async (vehicleId: string, status: string): Promise<boolean> => {
+  const response = await api.patch(`/owner/rentals/vehicles/${vehicleId}/status`, { status });
+  return response.data.success;
+};
+
+export const getRentalPlans = async (facilityId: string): Promise<any[]> => {
+  const response = await api.get('/owner/rentals/plans', { params: { facilityId } });
+  return response.data.data;
+};
+
+export const createRentalPlan = async (planData: any): Promise<any> => {
+  const response = await api.post('/owner/rentals/plans', planData);
+  return response.data.data;
+};
+
+export const getDrivers = async (facilityId: string): Promise<any[]> => {
+  const response = await api.get('/owner/rentals/drivers', { params: { facilityId } });
+  return response.data.data;
+};
+
+export const createDriver = async (driverData: any): Promise<any> => {
+  const response = await api.post('/owner/rentals/drivers', driverData);
+  return response.data.data;
+};
+
+export const lookupRenter = async (facilityId: string, phone: string): Promise<any> => {
+  const response = await api.get('/owner/rentals/renter-lookup', { params: { facilityId, phone } });
+  return response.data.data;
+};
+
+export const createWalkInBooking = async (walkInData: any): Promise<any> => {
+  const response = await api.post('/owner/rentals/walk-in', walkInData);
+  return response.data.data;
+};
+
+export const getTodayBoard = async (facilityId: string, date?: string): Promise<any> => {
+  const response = await api.get('/owner/rentals/today-board', { params: { facilityId, date } });
+  return response.data.data;
+};
+
+export const processPickupHandover = async (bookingId: string, handoverData: any): Promise<boolean> => {
+  const response = await api.post(`/owner/rentals/bookings/${bookingId}/pickup`, handoverData);
+  return response.data.success;
+};
+
+export const processReturnInspection = async (bookingId: string, returnData: any): Promise<any> => {
+  const response = await api.post(`/owner/rentals/bookings/${bookingId}/return`, returnData);
+  return response.data.data;
+};
+
+export const settleRental = async (bookingId: string, settlementData: any): Promise<boolean> => {
+  const response = await api.post(`/owner/rentals/bookings/${bookingId}/settle`, settlementData);
+  return response.data.success;
+};
+
+export const getDailyRentalReport = async (facilityId: string, date?: string): Promise<any> => {
+  const response = await api.get('/owner/rentals/reports/daily', { params: { facilityId, date } });
+  return response.data.data;
+};
+
 
 const getMockFacilities = (typeFilter?: string): Facility[] => {
   const all: Facility[] = [

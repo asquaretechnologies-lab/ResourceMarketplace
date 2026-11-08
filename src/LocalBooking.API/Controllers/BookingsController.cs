@@ -10,6 +10,7 @@ namespace LocalBooking.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
@@ -51,6 +52,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost("check-in")]
+    [Authorize(Roles = "OWNER,STAFF,ADMIN")]
     public async Task<IActionResult> CheckInOrOut([FromBody] CheckInRequestDto request)
     {
         Guid staffUserId = GetUserIdFromClaims();
@@ -73,12 +75,11 @@ public class BookingsController : ControllerBase
 
     private Guid GetUserIdFromClaims()
     {
-        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
         if (Guid.TryParse(claim, out var userId))
         {
             return userId;
         }
-        // Fallback for dev demo user if unauthenticated
-        return Guid.Parse("44444444-4444-4444-4444-444444444444");
+        throw new UnauthorizedAccessException("Invalid user token.");
     }
 }

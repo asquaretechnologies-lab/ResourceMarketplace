@@ -88,8 +88,9 @@ public static class DatabaseSeeder
         var typeSports = new FacilityType { FacilityTypeId = 1, Code = "SPORTS", Name = "Sports Arena & Turf", Icon = "sports_soccer" };
         var typeParking = new FacilityType { FacilityTypeId = 2, Code = "PARKING", Name = "Parking Facility", Icon = "local_parking" };
         var typeEV = new FacilityType { FacilityTypeId = 3, Code = "EV_CHARGING", Name = "EV Charging Station", Icon = "ev_station" };
+        var typeRental = new FacilityType { FacilityTypeId = 4, Code = "RENTAL", Name = "Bike & Car Rental", Icon = "two_wheeler" };
 
-        await context.FacilityTypes.AddRangeAsync(typeSports, typeParking, typeEV);
+        await context.FacilityTypes.AddRangeAsync(typeSports, typeParking, typeEV, typeRental);
 
         // 5. Vehicle Types
         var vTwoWheeler = new VehicleType { VehicleTypeId = 1, Code = "TWO_WHEELER", Name = "Two Wheeler / Bike" };
@@ -371,6 +372,272 @@ public static class DatabaseSeeder
         };
 
         await context.Coupons.AddAsync(firstBookCoupon);
+
+        // 13. Vehicle Models (Catalogue)
+        var vmActiva = new VehicleModel { VehicleModelId = 1, Category = VehicleCategory.SCOOTER, Make = "Honda", Model = "Activa 6G", Seats = 2, FuelType = FuelType.PETROL, Transmission = TransmissionType.AUTOMATIC, EngineCc = 110 };
+        var vmClassic = new VehicleModel { VehicleModelId = 2, Category = VehicleCategory.BIKE, Make = "Royal Enfield", Model = "Classic 350", Seats = 2, FuelType = FuelType.PETROL, Transmission = TransmissionType.MANUAL, EngineCc = 349 };
+        var vmHimalayan = new VehicleModel { VehicleModelId = 3, Category = VehicleCategory.BIKE, Make = "Royal Enfield", Model = "Himalayan 450", Seats = 2, FuelType = FuelType.PETROL, Transmission = TransmissionType.MANUAL, EngineCc = 452 };
+        var vmSwift = new VehicleModel { VehicleModelId = 4, Category = VehicleCategory.HATCHBACK, Make = "Maruti Suzuki", Model = "Swift ZXi", Seats = 5, FuelType = FuelType.PETROL, Transmission = TransmissionType.MANUAL, EngineCc = 1197 };
+        var vmThar = new VehicleModel { VehicleModelId = 5, Category = VehicleCategory.SUV, Make = "Mahindra", Model = "Thar 4x4", Seats = 4, FuelType = FuelType.DIESEL, Transmission = TransmissionType.AUTOMATIC, EngineCc = 2184 };
+
+        await context.VehicleModels.AddRangeAsync(vmActiva, vmClassic, vmHimalayan, vmSwift, vmThar);
+
+        // 14. Rental Facility (Fort Kochi Tourist Hub)
+        var fortKochiRentals = new Facility
+        {
+            FacilityId = Guid.Parse("f5555555-5555-5555-5555-555555555555"),
+            OwnerId = ownerUser1.UserId,
+            FacilityTypeId = typeRental.FacilityTypeId,
+            Name = "Fort Kochi Wheels & Rentals",
+            Description = "Premium self-drive bikes, touring motorcycles and SUVs for tourists in Fort Kochi, Mattancherry & Munnar. Helmet, sanitized vehicles, roadside assistance.",
+            Address = "Peter Celli Street, Near Chinese Fishing Nets, Fort Kochi",
+            District = "Ernakulam",
+            State = "Kerala",
+            Country = "India",
+            PostalCode = "682001",
+            Latitude = 9.9674,
+            Longitude = 76.2427,
+            Landmark = "150m from Chinese Fishing Nets",
+            Is24Hours = false,
+            OpeningTime = new TimeSpan(7, 0, 0),
+            ClosingTime = new TimeSpan(22, 0, 0),
+            Status = FacilityStatusCode.APPROVED,
+            ApprovalStatus = VerificationStatus.APPROVED,
+            CommissionRate = 0.0m, // Free for now as requested
+            UpiVpa = "fortkochiwheels@okaxis",
+            UpiPayeeName = "Fort Kochi Wheels",
+            AcceptsDirectUpi = true,
+            AcceptsCash = true,
+            OffersDriver = true,
+            OffersDelivery = true,
+            DeliveryRadiusKm = 15,
+            DeliveryFeeFlat = 150,
+            DeliveryFeePerKm = 12,
+            ContactPhone = "+919847012345",
+            RentalTerms = "Valid original Driving Licence required. Security deposit refundable upon vehicle return inspection. Helmet mandatory.",
+            CancellationPolicy = "Free cancellation up to 6 hours before scheduled pickup."
+        };
+
+        await context.Facilities.AddAsync(fortKochiRentals);
+
+        // 15. Rental Plans
+        var planScooter = new RentalPlan
+        {
+            RentalPlanId = Guid.Parse("p1111111-1111-1111-1111-111111111111"),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Daily Scooter Standard",
+            PricePerHour = 70.0m,
+            PricePerDay = 450.0m,
+            PricePerWeek = 2800.0m,
+            MinHours = 4,
+            FreeKmPerDay = 120,
+            ExtraKmCharge = 4.0m,
+            LateFeePerHour = 100.0m,
+            GraceMinutes = 30,
+            SecurityDepositAmount = 1000.0m,
+            HelmetIncluded = true,
+            FuelPolicy = FuelPolicy.SAME_TO_SAME,
+            IsActive = true
+        };
+
+        var planBullet = new RentalPlan
+        {
+            RentalPlanId = Guid.Parse("p2222222-2222-2222-2222-222222222222"),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Royal Enfield Cruiser",
+            PricePerHour = 130.0m,
+            PricePerDay = 950.0m,
+            PricePerWeek = 5800.0m,
+            MinHours = 4,
+            FreeKmPerDay = 150,
+            ExtraKmCharge = 6.0m,
+            LateFeePerHour = 150.0m,
+            GraceMinutes = 30,
+            SecurityDepositAmount = 2000.0m,
+            HelmetIncluded = true,
+            FuelPolicy = FuelPolicy.SAME_TO_SAME,
+            IsActive = true
+        };
+
+        var planHimalayan = new RentalPlan
+        {
+            RentalPlanId = Guid.Parse("p3333333-3333-3333-3333-333333333333"),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "RE Himalayan Touring",
+            PricePerHour = 180.0m,
+            PricePerDay = 1400.0m,
+            PricePerWeek = 8500.0m,
+            MinHours = 4,
+            FreeKmPerDay = 180,
+            ExtraKmCharge = 7.0m,
+            LateFeePerHour = 200.0m,
+            GraceMinutes = 30,
+            SecurityDepositAmount = 3000.0m,
+            HelmetIncluded = true,
+            FuelPolicy = FuelPolicy.SAME_TO_SAME,
+            IsActive = true
+        };
+
+        var planSwift = new RentalPlan
+        {
+            RentalPlanId = Guid.Parse("p4444444-4444-4444-4444-444444444444"),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Car Hatchback Standard (Swift)",
+            PricePerHour = null,
+            PricePerDay = 1600.0m,
+            PricePerWeek = 9800.0m,
+            MinHours = 24,
+            FreeKmPerDay = 200,
+            ExtraKmCharge = 9.0m,
+            LateFeePerHour = 250.0m,
+            GraceMinutes = 45,
+            SecurityDepositAmount = 3000.0m,
+            HelmetIncluded = false,
+            FuelPolicy = FuelPolicy.SAME_TO_SAME,
+            IsActive = true
+        };
+
+        var planThar = new RentalPlan
+        {
+            RentalPlanId = Guid.Parse("p5555555-5555-5555-5555-555555555555"),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Thar 4x4 Off-Road Adventure",
+            PricePerHour = null,
+            PricePerDay = 3200.0m,
+            PricePerWeek = 19500.0m,
+            MinHours = 24,
+            FreeKmPerDay = 200,
+            ExtraKmCharge = 14.0m,
+            LateFeePerHour = 400.0m,
+            GraceMinutes = 45,
+            SecurityDepositAmount = 5000.0m,
+            HelmetIncluded = false,
+            FuelPolicy = FuelPolicy.SAME_TO_SAME,
+            IsActive = true
+        };
+
+        await context.RentalPlans.AddRangeAsync(planScooter, planBullet, planHimalayan, planSwift, planThar);
+
+        // 16. Specific Vehicles
+        var v1 = new Vehicle
+        {
+            VehicleId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            VehicleModelId = vmActiva.VehicleModelId,
+            RentalPlanId = planScooter.RentalPlanId,
+            RegistrationNumber = "KL 07 CA 4012",
+            Color = "Pearl Blue",
+            Year = 2024,
+            OdometerKm = 12450,
+            FuelLevelPercent = 90,
+            Status = VehicleStatus.AVAILABLE,
+            IsListedOnline = true,
+            InsuranceExpiry = DateTime.UtcNow.AddMonths(10),
+            PollutionExpiry = DateTime.UtcNow.AddMonths(4)
+        };
+
+        var v2 = new Vehicle
+        {
+            VehicleId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            VehicleModelId = vmClassic.VehicleModelId,
+            RentalPlanId = planBullet.RentalPlanId,
+            RegistrationNumber = "KL 07 CB 1902",
+            Color = "Gunmetal Grey",
+            Year = 2023,
+            OdometerKm = 15200,
+            FuelLevelPercent = 85,
+            Status = VehicleStatus.AVAILABLE,
+            IsListedOnline = true,
+            InsuranceExpiry = DateTime.UtcNow.AddMonths(8),
+            PollutionExpiry = DateTime.UtcNow.AddMonths(2)
+        };
+
+        var v3 = new Vehicle
+        {
+            VehicleId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            VehicleModelId = vmHimalayan.VehicleModelId,
+            RentalPlanId = planHimalayan.RentalPlanId,
+            RegistrationNumber = "KL 07 CB 5544",
+            Color = "Kamet White",
+            Year = 2024,
+            OdometerKm = 6100,
+            FuelLevelPercent = 95,
+            Status = VehicleStatus.AVAILABLE,
+            IsListedOnline = true,
+            InsuranceExpiry = DateTime.UtcNow.AddMonths(11),
+            PollutionExpiry = DateTime.UtcNow.AddMonths(5)
+        };
+
+        var v4 = new Vehicle
+        {
+            VehicleId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            VehicleModelId = vmSwift.VehicleModelId,
+            RentalPlanId = planSwift.RentalPlanId,
+            RegistrationNumber = "KL 07 CD 8801",
+            Color = "Sizzling Red",
+            Year = 2023,
+            OdometerKm = 28400,
+            FuelLevelPercent = 80,
+            Status = VehicleStatus.AVAILABLE,
+            IsListedOnline = true,
+            InsuranceExpiry = DateTime.UtcNow.AddMonths(6),
+            PollutionExpiry = DateTime.UtcNow.AddMonths(3)
+        };
+
+        var v5 = new Vehicle
+        {
+            VehicleId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            VehicleModelId = vmThar.VehicleModelId,
+            RentalPlanId = planThar.RentalPlanId,
+            RegistrationNumber = "KL 07 CE 9999",
+            Color = "Napoli Black",
+            Year = 2024,
+            OdometerKm = 14200,
+            FuelLevelPercent = 100,
+            Status = VehicleStatus.AVAILABLE,
+            IsListedOnline = true,
+            InsuranceExpiry = DateTime.UtcNow.AddMonths(9),
+            PollutionExpiry = DateTime.UtcNow.AddMonths(4)
+        };
+
+        await context.Vehicles.AddRangeAsync(v1, v2, v3, v4, v5);
+
+        // 17. Drivers
+        var d1 = new Driver
+        {
+            DriverId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Biju Thomas",
+            Phone = "+919847112233",
+            LicenceNumber = "KL-07-2015-001234",
+            LicenceExpiry = DateTime.UtcNow.AddYears(3),
+            Languages = "Malayalam, English, Tamil",
+            ChargePerDay = 600.0m,
+            NightAllowance = 250.0m,
+            Status = DriverStatus.AVAILABLE,
+            IsActive = true
+        };
+
+        var d2 = new Driver
+        {
+            DriverId = Guid.NewGuid(),
+            FacilityId = fortKochiRentals.FacilityId,
+            Name = "Rajesh Kumar",
+            Phone = "+919847223344",
+            LicenceNumber = "KL-07-2017-009876",
+            LicenceExpiry = DateTime.UtcNow.AddYears(4),
+            Languages = "Malayalam, Hindi, English",
+            ChargePerDay = 650.0m,
+            NightAllowance = 300.0m,
+            Status = DriverStatus.AVAILABLE,
+            IsActive = true
+        };
+
+        await context.Drivers.AddRangeAsync(d1, d2);
 
         await context.SaveChangesAsync();
     }

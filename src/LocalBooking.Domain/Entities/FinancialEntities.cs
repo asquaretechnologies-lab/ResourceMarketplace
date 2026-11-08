@@ -14,11 +14,15 @@ public class Payment
 
     public string PaymentNumber { get; set; } = string.Empty;
     public string TransactionId { get; set; } = string.Empty;
-    public string PaymentGateway { get; set; } = "RAZORPAY"; // RAZORPAY, MOCK
-    public string PaymentMethod { get; set; } = "UPI"; // UPI, CARD, NETBANKING
+    public string PaymentGateway { get; set; } = "RAZORPAY"; // RAZORPAY, UPI_DIRECT, CASH, MOCK
+    public string PaymentMethod { get; set; } = "UPI"; // UPI, CASH (CARD, NETBANKING later via Razorpay)
+    public PaymentPurpose Purpose { get; set; } = PaymentPurpose.BOOKING;
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "INR";
     public PaymentStatusCode Status { get; set; } = PaymentStatusCode.PENDING;
+    public string UpiReference { get; set; } = string.Empty; // UTR entered by customer/staff for direct UPI
+    public Guid? ReceivedByUserId { get; set; }              // staff who confirmed UPI / collected cash
+    public DateTime? ConfirmedAt { get; set; }
     public string ResponsePayload { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 

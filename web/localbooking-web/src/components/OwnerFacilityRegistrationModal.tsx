@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Facility } from '../types';
-import { X, Building, MapPin, Car, Activity, FileText, CheckCircle, Clock, Upload } from 'lucide-react';
+import { X, Building, MapPin, Car, Activity, Bike, FileText, CheckCircle, Clock, Upload } from 'lucide-react';
 
 interface OwnerFacilityRegistrationModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ export const OwnerFacilityRegistrationModal: React.FC<OwnerFacilityRegistrationM
   onClose,
   onFacilityCreated
 }) => {
-  const [facilityType, setFacilityType] = useState<'PARKING' | 'SPORTS'>('PARKING');
+  const [facilityType, setFacilityType] = useState<'PARKING' | 'SPORTS' | 'RENTAL'>('PARKING');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
@@ -126,20 +126,27 @@ export const OwnerFacilityRegistrationModal: React.FC<OwnerFacilityRegistrationM
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           {/* Facility Type Switcher */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
             <button
               type="button"
               onClick={() => setFacilityType('PARKING')}
-              style={{ padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: facilityType === 'PARKING' ? 'var(--amber-primary)' : 'var(--border-light)', background: facilityType === 'PARKING' ? 'rgba(245, 158, 11, 0.15)' : '#0b111e', color: facilityType === 'PARKING' ? '#fbbf24' : '#94a3b8', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              style={{ padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: facilityType === 'PARKING' ? 'var(--amber-primary)' : 'var(--border-light)', background: facilityType === 'PARKING' ? 'rgba(245, 158, 11, 0.15)' : '#0b111e', color: facilityType === 'PARKING' ? '#fbbf24' : '#94a3b8', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              <Car size={16} /> Parking Space Facility
+              <Car size={15} /> Parking
             </button>
             <button
               type="button"
               onClick={() => setFacilityType('SPORTS')}
-              style={{ padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: facilityType === 'SPORTS' ? 'var(--emerald-primary)' : 'var(--border-light)', background: facilityType === 'SPORTS' ? 'rgba(16, 185, 129, 0.15)' : '#0b111e', color: facilityType === 'SPORTS' ? '#34d399' : '#94a3b8', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              style={{ padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: facilityType === 'SPORTS' ? 'var(--emerald-primary)' : 'var(--border-light)', background: facilityType === 'SPORTS' ? 'rgba(16, 185, 129, 0.15)' : '#0b111e', color: facilityType === 'SPORTS' ? '#34d399' : '#94a3b8', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              <Activity size={16} /> Sports Turf / Arena
+              <Activity size={15} /> Sports Turf
+            </button>
+            <button
+              type="button"
+              onClick={() => setFacilityType('RENTAL')}
+              style={{ padding: '10px', borderRadius: '12px', border: '1px solid', borderColor: facilityType === 'RENTAL' ? '#38bdf8' : 'var(--border-light)', background: facilityType === 'RENTAL' ? 'rgba(56, 189, 248, 0.15)' : '#0b111e', color: facilityType === 'RENTAL' ? '#38bdf8' : '#94a3b8', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            >
+              <Bike size={15} /> Rentals
             </button>
           </div>
 

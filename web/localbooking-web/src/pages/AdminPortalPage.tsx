@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Facility } from '../types';
-import { searchFacilities } from '../services/api';
+import { searchFacilities, USE_MOCKS } from '../services/api';
 import { Shield, CheckCircle, XCircle, FileText, Building, Users, DollarSign } from 'lucide-react';
 
 export const AdminPortalPage: React.FC = () => {
   const [commissionRate, setCommissionRate] = useState('10.0');
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAdminFacilities();
@@ -14,11 +15,20 @@ export const AdminPortalPage: React.FC = () => {
 
   const fetchAdminFacilities = async () => {
     setLoading(true);
-    const data = await searchFacilities({});
+    setError(null);
+    let data: Facility[];
+    try {
+      data = await searchFacilities({});
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load facilities.');
+      setFacilities([]);
+      setLoading(false);
+      return;
+    }
     
-    // Add default Thrissur pending review demo facility if not present
+    // Add default Thrissur pending review demo facility if not present (dev mock mode only)
     const hasThrissur = data.some(f => f.name.includes('Thrissur'));
-    if (!hasThrissur) {
+    if (USE_MOCKS && !hasThrissur) {
       data.push({
         facilityId: 'f-thrissur-pending',
         name: 'Thrissur Station Private Bike Parking',
@@ -122,6 +132,12 @@ export const AdminPortalPage: React.FC = () => {
           </div>
         </div>
 
+        {error && (
+          <div role="alert" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <span>{error}</span>
+            <button id="retry-admin-facilities" className="btn-secondary" onClick={fetchAdminFacilities}>Retry</button>
+          </div>
+        )}
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading facilities for review...</div>
         ) : (

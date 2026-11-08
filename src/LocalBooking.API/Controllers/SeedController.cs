@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using LocalBooking.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LocalBooking.API.Controllers;
@@ -10,15 +11,21 @@ namespace LocalBooking.API.Controllers;
 public class SeedController : ControllerBase
 {
     private readonly LocalBookingDbContext _dbContext;
+    private readonly IWebHostEnvironment _env;
 
-    public SeedController(LocalBookingDbContext dbContext)
+    public SeedController(LocalBookingDbContext dbContext, IWebHostEnvironment env)
     {
         _dbContext = dbContext;
+        _env = env;
     }
 
+    /// <summary>Re-seeds demo data. Allowed for ADMIN users, or anyone in Development.</summary>
     [HttpPost("init")]
+    [AllowAnonymous]
     public async Task<IActionResult> SeedDatabase()
     {
+        if (!_env.IsDevelopment() && !User.IsInRole("ADMIN"))
+            return Forbid();
         try
         {
             await DatabaseSeeder.SeedAsync(_dbContext);

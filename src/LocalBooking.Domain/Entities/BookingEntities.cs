@@ -16,7 +16,12 @@ public class Booking
     public Guid FacilityId { get; set; }
     public Facility Facility { get; set; } = null!;
 
-    public string BookingType { get; set; } = "SPORTS"; // SPORTS, PARKING
+    public string BookingType { get; set; } = "SPORTS"; // SPORTS, PARKING, RENTAL
+
+    /// <summary>ONLINE (customer booked) or WALK_IN (staff entered). For walk-ins, UserId is the staff user and the customer is in RentalAgreement.RenterProfile.</summary>
+    public BookingSource Source { get; set; } = BookingSource.ONLINE;
+    public Guid? CreatedByUserId { get; set; }
+    public string Notes { get; set; } = string.Empty;
 
     public DateTime StartDateTime { get; set; }
     public DateTime EndDateTime { get; set; }
@@ -42,6 +47,7 @@ public class Booking
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<Refund> Refunds { get; set; } = new List<Refund>();
     public Review? Review { get; set; }
+    public RentalAgreement? RentalAgreement { get; set; }
 }
 
 public class BookingItem

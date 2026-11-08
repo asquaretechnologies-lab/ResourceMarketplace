@@ -63,20 +63,33 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IRentalService, RentalService>();
 
-// CORS
+// CORS: production origins come from config (Cors:AllowedOrigins, comma-separated or array).
+// Development falls back to allow-all for convenience.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (allowedOrigins.Length > 0)
+            policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader();
+        else
+        {
+            if (!builder.Environment.IsDevelopment())
+                Console.WriteLine("[CORS WARNING] Cors:AllowedOrigins not set; allowing ALL origins. Set Cors__AllowedOrigins to your Vercel URL.");
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        }
     });
 });
 
-// JWT Authentication
-var jwtSecret = builder.Configuration["JwtSettings:SecretKey"] ?? "LocalBookingPlatform_Kerala_SuperSecureKey_2026_EngineToken_Secret";
+// JWT Authentication (must use the SAME settings as JwtTokenGenerator)
+var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecretLocalBookingPlatformKey2026!WithExtraLengthForHS256AlgorithmSafety";
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "LocalBookingPlatform";
+var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "LocalBookingClients";
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -86,8 +99,10 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
@@ -105,7 +120,7 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-app.UseCors("AllowAll");
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

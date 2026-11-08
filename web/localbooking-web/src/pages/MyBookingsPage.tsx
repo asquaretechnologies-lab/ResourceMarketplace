@@ -10,6 +10,7 @@ interface MyBookingsPageProps {
 export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({ initialBooking }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -17,13 +18,20 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({ initialBooking }
 
   const fetchBookings = async () => {
     setLoading(true);
-    const data = await getMyBookings();
-    if (initialBooking && !data.some(b => b.bookingId === initialBooking.bookingId)) {
-      setBookings([initialBooking, ...data]);
-    } else {
-      setBookings(data);
+    setError(null);
+    try {
+      const data = await getMyBookings();
+      if (initialBooking && !data.some(b => b.bookingId === initialBooking.bookingId)) {
+        setBookings([initialBooking, ...data]);
+      } else {
+        setBookings(data);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load bookings.');
+      setBookings(initialBooking ? [initialBooking] : []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -37,6 +45,13 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({ initialBooking }
         </h1>
         <p className="page-subtitle">Present these digital QR passes at entrance scanners for automated check-in</p>
       </div>
+
+      {error && (
+        <div role="alert" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <span>{error}</span>
+          <button id="retry-my-bookings" className="btn-secondary" onClick={fetchBookings}>Retry</button>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>

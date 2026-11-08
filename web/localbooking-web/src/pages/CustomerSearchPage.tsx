@@ -4,7 +4,7 @@ import { searchFacilities } from '../services/api';
 import { Search, MapPin, Star, Car, Activity, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface CustomerSearchPageProps {
-  activeCategory: 'ALL' | 'SPORTS' | 'PARKING';
+  activeCategory: 'ALL' | 'SPORTS' | 'PARKING' | 'RENTAL';
   onSelectFacility: (facility: Facility) => void;
 }
 
@@ -16,6 +16,7 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
   const [searchKeyword, setSearchKeyword] = useState('');
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -23,14 +24,21 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     const catFilter = activeCategory === 'ALL' ? undefined : activeCategory;
-    const data = await searchFacilities({
-      keyword: searchKeyword,
-      facilityType: catFilter,
-      district: district || undefined
-    });
-    setFacilities(data);
-    setLoading(false);
+    try {
+      const data = await searchFacilities({
+        keyword: searchKeyword,
+        facilityType: catFilter,
+        district: district || undefined
+      });
+      setFacilities(data);
+    } catch (err) {
+      setFacilities([]);
+      setError(err instanceof Error ? err.message : 'Failed to load facilities.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -49,11 +57,11 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
         </div>
 
         <h1 className="hero-title">
-          Find, Book & Park in <span className="highlight">Kerala</span>
+          Find, Book & Ride in <span className="highlight">Kerala</span>
         </h1>
         
         <p className="hero-subtitle">
-          Book private land parking near <strong>Aluva & Ernakulam Railway Stations</strong> or reserve premier FIFA football turfs, badminton & pickleball courts.
+          Rent self-drive <strong>tourist bikes & cars</strong> in Fort Kochi & Munnar, reserve station parking near <strong>Aluva Railway Station</strong>, or book premier FIFA football turfs.
         </p>
 
         {/* Search Bar Form */}
@@ -113,6 +121,12 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
           </div>
         </div>
 
+        {error && (
+          <div role="alert" style={{ padding: '14px 18px', marginBottom: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <span>{error}</span>
+            <button id="retry-facility-search" className="btn-secondary" onClick={fetchData}>Retry</button>
+          </div>
+        )}
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
             Loading facilities & availability...

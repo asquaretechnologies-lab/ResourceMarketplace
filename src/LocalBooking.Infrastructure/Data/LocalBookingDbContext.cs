@@ -42,9 +42,27 @@ public class LocalBookingDbContext : DbContext, ILocalBookingDbContext
     public DbSet<OwnerBankAccount> OwnerBankAccounts => Set<OwnerBankAccount>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // Vehicle Rentals
+    public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
+    public DbSet<RentalPlan> RentalPlans => Set<RentalPlan>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<VehiclePhoto> VehiclePhotos => Set<VehiclePhoto>();
+    public DbSet<VehicleMaintenance> VehicleMaintenances => Set<VehicleMaintenance>();
+    public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<RenterProfile> RenterProfiles => Set<RenterProfile>();
+    public DbSet<RenterDocument> RenterDocuments => Set<RenterDocument>();
+    public DbSet<ShopRenterFlag> ShopRenterFlags => Set<ShopRenterFlag>();
+    public DbSet<RentalAgreement> RentalAgreements => Set<RentalAgreement>();
+    public DbSet<VehicleInspection> VehicleInspections => Set<VehicleInspection>();
+    public DbSet<RentalCharge> RentalCharges => Set<RentalCharge>();
+    public DbSet<SecurityDeposit> SecurityDeposits => Set<SecurityDeposit>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Rental configuration first so its keys/indexes also get snake_case names below
+        ConfigureRentals(modelBuilder);
 
         // Convert table & column names to PostgreSQL snake_case conventions
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -144,6 +162,62 @@ public class LocalBookingDbContext : DbContext, ILocalBookingDbContext
         modelBuilder.Entity<OwnerDocument>()
             .Property(d => d.VerificationStatus)
             .HasConversion<string>();
+    }
+
+    private static void ConfigureRentals(ModelBuilder mb)
+    {
+        mb.Entity<ShopRenterFlag>().HasKey(f => new { f.FacilityId, f.RenterProfileId });
+
+        mb.Entity<Vehicle>().HasIndex(v => v.RegistrationNumber).IsUnique();
+        mb.Entity<Vehicle>().HasIndex(v => new { v.FacilityId, v.Status });
+        mb.Entity<Vehicle>().HasOne(v => v.RentalPlan).WithMany(p => p.Vehicles)
+            .HasForeignKey(v => v.RentalPlanId).OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<RenterProfile>().HasIndex(r => r.Phone).IsUnique();
+        mb.Entity<Payment>().Property(p => p.Purpose).HasConversion<string>();
+        mb.Entity<Booking>().Property(b => b.Source).HasConversion<string>();
+
+        // One agreement per booking; overlap queries by vehicle/time
+        mb.Entity<RentalAgreement>().HasOne(a => a.Booking).WithOne(b => b.RentalAgreement)
+            .HasForeignKey<RentalAgreement>(a => a.BookingId);
+        mb.Entity<RentalAgreement>().HasIndex(a => a.BookingId).IsUnique();
+        mb.Entity<RentalAgreement>().HasIndex(a => new { a.VehicleId, a.ScheduledPickup, a.ScheduledReturn });
+        mb.Entity<RentalAgreement>().HasIndex(a => new { a.DriverId, a.ScheduledPickup, a.ScheduledReturn });
+        mb.Entity<RentalAgreement>().HasOne(a => a.Vehicle).WithMany(v => v.RentalAgreements)
+            .HasForeignKey(a => a.VehicleId).OnDelete(DeleteBehavior.Restrict);
+        mb.Entity<RentalAgreement>().HasOne(a => a.Driver).WithMany()
+            .HasForeignKey(a => a.DriverId).OnDelete(DeleteBehavior.SetNull);
+        mb.Entity<RentalAgreement>().HasOne(a => a.RenterProfile).WithMany()
+            .HasForeignKey(a => a.RenterProfileId).OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<SecurityDeposit>().HasOne(d => d.RentalAgreement).WithOne(a => a.SecurityDeposit)
+            .HasForeignKey<SecurityDeposit>(d => d.RentalAgreementId);
+
+        // Money precision
+        foreach (var prop in mb.Model.GetEntityTypes()
+                     .Where(t => t.ClrType.Namespace == typeof(Vehicle).Namespace)
+                     .SelectMany(t => t.GetProperties())
+                     .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+        {
+            prop.SetPrecision(12);
+            prop.SetScale(2);
+        }
+
+        // Enums stored as readable strings
+        mb.Entity<VehicleModel>().Property(x => x.Category).HasConversion<string>();
+        mb.Entity<VehicleModel>().Property(x => x.FuelType).HasConversion<string>();
+        mb.Entity<VehicleModel>().Property(x => x.Transmission).HasConversion<string>();
+        mb.Entity<Vehicle>().Property(x => x.Status).HasConversion<string>();
+        mb.Entity<RentalPlan>().Property(x => x.FuelPolicy).HasConversion<string>();
+        mb.Entity<Driver>().Property(x => x.Status).HasConversion<string>();
+        mb.Entity<VehicleMaintenance>().Property(x => x.Type).HasConversion<string>();
+        mb.Entity<RenterDocument>().Property(x => x.DocumentType).HasConversion<string>();
+        mb.Entity<RenterDocument>().Property(x => x.VerificationStatus).HasConversion<string>();
+        mb.Entity<RentalAgreement>().Property(x => x.PickupMode).HasConversion<string>();
+        mb.Entity<RentalAgreement>().Property(x => x.DropMode).HasConversion<string>();
+        mb.Entity<VehicleInspection>().Property(x => x.Stage).HasConversion<string>();
+        mb.Entity<RentalCharge>().Property(x => x.Type).HasConversion<string>();
+        mb.Entity<SecurityDeposit>().Property(x => x.Status).HasConversion<string>();
     }
 
     private static string ToSnakeCase(string name)

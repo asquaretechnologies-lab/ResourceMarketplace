@@ -15,7 +15,8 @@ ON CONFLICT (role_id) DO NOTHING;
 INSERT INTO facility_types (facility_type_id, code, name, icon) VALUES
 (1, 'SPORTS', 'Sports Arena & Turf', 'sports_soccer'),
 (2, 'PARKING', 'Parking Facility', 'local_parking'),
-(3, 'EV_CHARGING', 'EV Charging Station', 'ev_station')
+(3, 'EV_CHARGING', 'EV Charging Station', 'ev_station'),
+(4, 'RENTAL', 'Bike & Car Rental', 'two_wheeler')
 ON CONFLICT (facility_type_id) DO NOTHING;
 
 -- 3. Vehicle Types
@@ -172,3 +173,78 @@ ON CONFLICT DO NOTHING;
 INSERT INTO coupons (coupon_id, code, discount_type, discount_value, max_discount_amount, min_booking_amount, valid_from, valid_to, usage_limit, user_usage_limit, status) VALUES
 (uuid_generate_v4(), 'FIRSTBOOK', 'PERCENTAGE', 10.00, 100.00, 200.00, CURRENT_TIMESTAMP - INTERVAL '10 days', CURRENT_TIMESTAMP + INTERVAL '180 days', 500, 1, 'ACTIVE')
 ON CONFLICT (code) DO NOTHING;
+
+-- 12. Vehicle Models (Catalogue)
+INSERT INTO vehicle_models (vehicle_model_id, category, make, model, seats, fuel_type, transmission, engine_cc) VALUES
+(1, 'SCOOTER', 'Honda', 'Activa 6G', 2, 'PETROL', 'AUTOMATIC', 110),
+(2, 'BIKE', 'Royal Enfield', 'Classic 350', 2, 'PETROL', 'MANUAL', 349),
+(3, 'BIKE', 'Royal Enfield', 'Himalayan 450', 2, 'PETROL', 'MANUAL', 452),
+(4, 'HATCHBACK', 'Maruti Suzuki', 'Swift ZXi', 5, 'PETROL', 'MANUAL', 1197),
+(5, 'SUV', 'Mahindra', 'Thar 4x4', 4, 'DIESEL', 'AUTOMATIC', 2184)
+ON CONFLICT (vehicle_model_id) DO NOTHING;
+
+-- 13. Rental Facility (Fort Kochi Tourist Hub)
+INSERT INTO facilities 
+(facility_id, owner_id, facility_type_id, name, description, address, district, state, country, postal_code, latitude, longitude, landmark, is_24_hours, opening_time, closing_time, status, approval_status, commission_rate, upi_vpa, upi_payee_name, accepts_direct_upi, accepts_cash, offers_driver, offers_delivery, delivery_radius_km, delivery_fee_flat, delivery_fee_per_km, contact_phone, rental_terms, cancellation_policy, rating, review_count)
+VALUES
+(
+    'f5555555-5555-5555-5555-555555555555',
+    '22222222-2222-2222-2222-222222222222',
+    4,
+    'Fort Kochi Wheels & Rentals',
+    'Premium self-drive bikes, touring motorcycles and SUVs for tourists in Fort Kochi, Mattancherry & Munnar. Helmet, sanitized vehicles, roadside assistance.',
+    'Peter Celli Street, Near Chinese Fishing Nets, Fort Kochi',
+    'Ernakulam',
+    'Kerala',
+    'India',
+    '682001',
+    9.9674,
+    76.2427,
+    '150m from Chinese Fishing Nets',
+    false,
+    '07:00:00',
+    '22:00:00',
+    'APPROVED',
+    'APPROVED',
+    0.00,
+    'fortkochiwheels@okaxis',
+    'Fort Kochi Wheels',
+    true,
+    true,
+    true,
+    true,
+    15.00,
+    150.00,
+    12.00,
+    '+919847012345',
+    'Valid original Driving Licence required. Security deposit refundable upon vehicle return inspection. Helmet mandatory.',
+    'Free cancellation up to 6 hours before scheduled pickup.',
+    4.9,
+    86
+)
+ON CONFLICT (facility_id) DO NOTHING;
+
+-- 14. Rental Plans
+INSERT INTO rental_plans (rental_plan_id, facility_id, name, price_per_hour, price_per_day, price_per_week, min_hours, free_km_per_day, extra_km_charge, late_fee_per_hour, grace_minutes, security_deposit_amount, helmet_included, fuel_policy, is_active) VALUES
+('p1111111-1111-1111-1111-111111111111', 'f5555555-5555-5555-5555-555555555555', 'Daily Scooter Standard', 70.00, 450.00, 2800.00, 4, 120, 4.00, 100.00, 30, 1000.00, true, 'SAME_TO_SAME', true),
+('p2222222-2222-2222-2222-222222222222', 'f5555555-5555-5555-5555-555555555555', 'Royal Enfield Cruiser', 130.00, 950.00, 5800.00, 4, 150, 6.00, 150.00, 30, 2000.00, true, 'SAME_TO_SAME', true),
+('p3333333-3333-3333-3333-333333333333', 'f5555555-5555-5555-5555-555555555555', 'RE Himalayan Touring', 180.00, 1400.00, 8500.00, 4, 180, 7.00, 200.00, 30, 3000.00, true, 'SAME_TO_SAME', true),
+('p4444444-4444-4444-4444-444444444444', 'f5555555-5555-5555-5555-555555555555', 'Car Hatchback Standard (Swift)', NULL, 1600.00, 9800.00, 24, 200, 9.00, 250.00, 45, 3000.00, false, 'SAME_TO_SAME', true),
+('p5555555-5555-5555-5555-555555555555', 'f5555555-5555-5555-5555-555555555555', 'Thar 4x4 Off-Road Adventure', NULL, 3200.00, 19500.00, 24, 200, 14.00, 400.00, 45, 5000.00, false, 'SAME_TO_SAME', true)
+ON CONFLICT (rental_plan_id) DO NOTHING;
+
+-- 15. Vehicles
+INSERT INTO vehicles (vehicle_id, facility_id, vehicle_model_id, rental_plan_id, registration_number, color, year, odometer_km, fuel_level_percent, status, is_listed_online) VALUES
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 1, 'p1111111-1111-1111-1111-111111111111', 'KL 07 CA 4012', 'Pearl Blue', 2024, 12450, 90, 'AVAILABLE', true),
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 2, 'p2222222-2222-2222-2222-222222222222', 'KL 07 CB 1902', 'Gunmetal Grey', 2023, 15200, 85, 'AVAILABLE', true),
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 3, 'p3333333-3333-3333-3333-333333333333', 'KL 07 CB 5544', 'Kamet White', 2024, 6100, 95, 'AVAILABLE', true),
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 4, 'p4444444-4444-4444-4444-444444444444', 'KL 07 CD 8801', 'Sizzling Red', 2023, 28400, 80, 'AVAILABLE', true),
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 5, 'p5555555-5555-5555-5555-555555555555', 'KL 07 CE 9999', 'Napoli Black', 2024, 14200, 100, 'AVAILABLE', true)
+ON CONFLICT (registration_number) DO NOTHING;
+
+-- 16. Drivers
+INSERT INTO drivers (driver_id, facility_id, name, phone, licence_number, languages, charge_per_day, night_allowance, status, is_active) VALUES
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 'Biju Thomas', '+919847112233', 'KL-07-2015-001234', 'Malayalam, English, Tamil', 600.00, 250.00, 'AVAILABLE', true),
+(uuid_generate_v4(), 'f5555555-5555-5555-5555-555555555555', 'Rajesh Kumar', '+919847223344', 'KL-07-2017-009876', 'Malayalam, Hindi, English', 650.00, 300.00, 'AVAILABLE', true)
+ON CONFLICT DO NOTHING;
+

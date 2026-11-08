@@ -9,7 +9,7 @@ public class FacilityType
 {
     [Key]
     public int FacilityTypeId { get; set; }
-    public string Code { get; set; } = string.Empty; // SPORTS, PARKING, EV_CHARGING
+    public string Code { get; set; } = string.Empty; // SPORTS, PARKING, EV_CHARGING, RENTAL
     public string Name { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
@@ -46,7 +46,22 @@ public class Facility
 
     public FacilityStatusCode Status { get; set; } = FacilityStatusCode.DRAFT;
     public VerificationStatus ApprovalStatus { get; set; } = VerificationStatus.PENDING;
-    public decimal CommissionRate { get; set; } = 10.0m; // Default 10% platform fee
+    public decimal CommissionRate { get; set; } = 10.0m; // Default 10% platform fee (rental shops start at 0%)
+
+    // ---------- Rental shop settings (FacilityType = RENTAL) ----------
+    public string UpiVpa { get; set; } = string.Empty;          // e.g. shopname@okaxis, for direct UPI
+    public string UpiPayeeName { get; set; } = string.Empty;
+    public bool AcceptsDirectUpi { get; set; } = true;          // owner confirms manually
+    public bool AcceptsRazorpay { get; set; } = false;          // automatic confirmation via gateway
+    public bool AcceptsCash { get; set; } = true;
+    public bool OffersDriver { get; set; } = false;
+    public bool OffersDelivery { get; set; } = false;
+    public decimal? DeliveryRadiusKm { get; set; }
+    public decimal DeliveryFeeFlat { get; set; }
+    public decimal DeliveryFeePerKm { get; set; }
+    public string RentalTerms { get; set; } = string.Empty;
+    public string CancellationPolicy { get; set; } = string.Empty;
+    public string ContactPhone { get; set; } = string.Empty;
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
@@ -59,6 +74,9 @@ public class Facility
     public ICollection<BlockedPeriod> BlockedPeriods { get; set; } = new List<BlockedPeriod>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    public ICollection<RentalPlan> RentalPlans { get; set; } = new List<RentalPlan>();
+    public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 }
 
 public class FacilityPhoto

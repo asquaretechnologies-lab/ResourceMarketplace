@@ -13,7 +13,7 @@ import { Facility, Booking } from './types';
 function MainLayout() {
   const { user, isAuthenticated } = useAuth();
   const [currentView, setCurrentView] = useState<'search' | 'details' | 'bookings' | 'owner' | 'admin'>('search');
-  const [activeCategory, setActiveCategory] = useState<'ALL' | 'SPORTS' | 'PARKING'>('ALL');
+  const [activeCategory, setActiveCategory] = useState<'ALL' | 'SPORTS' | 'PARKING' | 'RENTAL'>('ALL');
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [lastConfirmedBooking, setLastConfirmedBooking] = useState<Booking | null>(null);
   const [registeredFacilities, setRegisteredFacilities] = useState<Facility[]>([]);

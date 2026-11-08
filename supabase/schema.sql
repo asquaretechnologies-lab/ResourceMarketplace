@@ -210,3 +210,201 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE INDEX IF NOT EXISTS idx_facilities_coords ON facilities(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_facilities_type_status ON facilities(facility_type_id, status, approval_status);
 CREATE INDEX IF NOT EXISTS idx_bookings_lookup ON bookings(facility_id, start_date_time, end_date_time, booking_status);
+
+-- =============================================================================
+-- VEHICLE RENTALS (BIKE & CAR RENTALS MODULE)
+-- =============================================================================
+
+-- Add rental settings columns to facilities
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS upi_vpa VARCHAR(100);
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS upi_payee_name VARCHAR(150);
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS accepts_direct_upi BOOLEAN DEFAULT true;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS accepts_razorpay BOOLEAN DEFAULT false;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS accepts_cash BOOLEAN DEFAULT true;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS offers_driver BOOLEAN DEFAULT false;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS offers_delivery BOOLEAN DEFAULT false;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS delivery_radius_km NUMERIC(5,2);
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS delivery_fee_flat NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS delivery_fee_per_km NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS rental_terms TEXT;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS cancellation_policy TEXT;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(30);
+
+-- Add source & creator to bookings
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'ONLINE';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_by_user_id UUID REFERENCES users(user_id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- 19. Vehicle Models (Catalogue)
+CREATE TABLE IF NOT EXISTS vehicle_models (
+    vehicle_model_id INT PRIMARY KEY,
+    category VARCHAR(30) NOT NULL,
+    make VARCHAR(100) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    seats INT NOT NULL DEFAULT 2,
+    fuel_type VARCHAR(20) NOT NULL DEFAULT 'PETROL',
+    transmission VARCHAR(20) NOT NULL DEFAULT 'MANUAL',
+    engine_cc INT
+);
+
+-- 20. Rental Plans
+CREATE TABLE IF NOT EXISTS rental_plans (
+    rental_plan_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    facility_id UUID NOT NULL REFERENCES facilities(facility_id) ON DELETE CASCADE,
+    name VARCHAR(150) NOT NULL,
+    price_per_hour NUMERIC(10,2),
+    price_per_day NUMERIC(10,2) NOT NULL,
+    price_per_week NUMERIC(10,2),
+    min_hours INT NOT NULL DEFAULT 4,
+    free_km_per_day INT,
+    extra_km_charge NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    late_fee_per_hour NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    grace_minutes INT NOT NULL DEFAULT 30,
+    security_deposit_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    helmet_included BOOLEAN NOT NULL DEFAULT true,
+    fuel_policy VARCHAR(30) NOT NULL DEFAULT 'SAME_TO_SAME',
+    is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- 21. Specific Vehicles
+CREATE TABLE IF NOT EXISTS vehicles (
+    vehicle_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    facility_id UUID NOT NULL REFERENCES facilities(facility_id) ON DELETE CASCADE,
+    vehicle_model_id INT NOT NULL REFERENCES vehicle_models(vehicle_model_id),
+    rental_plan_id UUID NOT NULL REFERENCES rental_plans(rental_plan_id),
+    registration_number VARCHAR(30) NOT NULL UNIQUE,
+    color VARCHAR(50),
+    year INT,
+    description TEXT,
+    odometer_km INT NOT NULL DEFAULT 0,
+    fuel_level_percent INT NOT NULL DEFAULT 100,
+    status VARCHAR(30) NOT NULL DEFAULT 'AVAILABLE',
+    insurance_expiry TIMESTAMPTZ,
+    pollution_expiry TIMESTAMPTZ,
+    permit_expiry TIMESTAMPTZ,
+    is_listed_online BOOLEAN NOT NULL DEFAULT true,
+    created_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_vehicles_facility_status ON vehicles(facility_id, status);
+
+-- 22. Vehicle Photos
+CREATE TABLE IF NOT EXISTS vehicle_photos (
+    vehicle_photo_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    vehicle_id UUID NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    is_primary BOOLEAN NOT NULL DEFAULT false,
+    display_order INT NOT NULL DEFAULT 0
+);
+
+-- 23. Drivers
+CREATE TABLE IF NOT EXISTS drivers (
+    driver_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    facility_id UUID NOT NULL REFERENCES facilities(facility_id) ON DELETE CASCADE,
+    name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    licence_number VARCHAR(100),
+    licence_expiry TIMESTAMPTZ,
+    languages VARCHAR(255),
+    charge_per_day NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    night_allowance NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    status VARCHAR(30) NOT NULL DEFAULT 'AVAILABLE',
+    photo_url TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- 24. Renter Profiles
+CREATE TABLE IF NOT EXISTS renter_profiles (
+    renter_profile_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    full_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30) NOT NULL UNIQUE,
+    alternate_phone VARCHAR(30),
+    email VARCHAR(150),
+    nationality VARCHAR(50) DEFAULT 'Indian',
+    home_address TEXT,
+    local_stay_address TEXT,
+    created_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 25. Shop Renter Flags (Private Shop Blacklist)
+CREATE TABLE IF NOT EXISTS shop_renter_flags (
+    facility_id UUID NOT NULL REFERENCES facilities(facility_id) ON DELETE CASCADE,
+    renter_profile_id UUID NOT NULL REFERENCES renter_profiles(renter_profile_id) ON DELETE CASCADE,
+    is_blacklisted BOOLEAN NOT NULL DEFAULT false,
+    reason TEXT,
+    notes TEXT,
+    updated_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (facility_id, renter_profile_id)
+);
+
+-- 26. Rental Agreements
+CREATE TABLE IF NOT EXISTS rental_agreements (
+    rental_agreement_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL UNIQUE REFERENCES bookings(booking_id) ON DELETE CASCADE,
+    vehicle_id UUID NOT NULL REFERENCES vehicles(vehicle_id),
+    renter_profile_id UUID NOT NULL REFERENCES renter_profiles(renter_profile_id),
+    with_driver BOOLEAN NOT NULL DEFAULT false,
+    driver_id UUID REFERENCES drivers(driver_id) ON DELETE SET NULL,
+    pickup_mode VARCHAR(30) NOT NULL DEFAULT 'AT_SHOP',
+    pickup_address TEXT,
+    drop_mode VARCHAR(30) NOT NULL DEFAULT 'AT_SHOP',
+    drop_address TEXT,
+    delivery_distance_km NUMERIC(5,2),
+    scheduled_pickup TIMESTAMPTZ NOT NULL,
+    scheduled_return TIMESTAMPTZ NOT NULL,
+    actual_pickup TIMESTAMPTZ,
+    actual_return TIMESTAMPTZ,
+    start_odometer INT,
+    end_odometer INT,
+    start_fuel_percent INT,
+    end_fuel_percent INT,
+    helmets_given INT DEFAULT 1,
+    plan_snapshot_json JSONB DEFAULT '{}',
+    rent_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    driver_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    delivery_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    agreement_accepted_at TIMESTAMPTZ,
+    signature_image_url TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_agreements_vehicle_dates ON rental_agreements(vehicle_id, scheduled_pickup, scheduled_return);
+
+-- 27. Security Deposits
+CREATE TABLE IF NOT EXISTS security_deposits (
+    security_deposit_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rental_agreement_id UUID NOT NULL UNIQUE REFERENCES rental_agreements(rental_agreement_id) ON DELETE CASCADE,
+    amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    collected_via VARCHAR(20) DEFAULT 'UPI',
+    collected_at TIMESTAMPTZ,
+    deducted_amount NUMERIC(10,2) DEFAULT 0.00,
+    refunded_amount NUMERIC(10,2) DEFAULT 0.00,
+    refunded_via VARCHAR(20),
+    refunded_at TIMESTAMPTZ,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING'
+);
+
+-- 28. Vehicle Inspections
+CREATE TABLE IF NOT EXISTS vehicle_inspections (
+    inspection_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rental_agreement_id UUID NOT NULL REFERENCES rental_agreements(rental_agreement_id) ON DELETE CASCADE,
+    stage VARCHAR(20) NOT NULL,
+    odometer_km INT NOT NULL,
+    fuel_level_percent INT NOT NULL,
+    damage_notes TEXT,
+    photo_urls TEXT[] DEFAULT '{}',
+    inspected_by_user_id UUID NOT NULL REFERENCES users(user_id),
+    inspected_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 29. Rental Charges
+CREATE TABLE IF NOT EXISTS rental_charges (
+    rental_charge_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rental_agreement_id UUID NOT NULL REFERENCES rental_agreements(rental_agreement_id) ON DELETE CASCADE,
+    type VARCHAR(30) NOT NULL,
+    description TEXT NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    created_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { processCheckIn } from '../services/api';
 import { CheckInResult } from '../types';
-import { LayoutDashboard, Car, Bike, QrCode, CheckCircle, AlertCircle, TrendingUp, Users, ArrowUpRight } from 'lucide-react';
+import { RentalOwnerRegister } from '../components/RentalOwnerRegister';
+import { LayoutDashboard, Car, Bike, QrCode, CheckCircle, AlertCircle, TrendingUp, Users, ArrowUpRight, Key } from 'lucide-react';
 
 export const OwnerDashboardPage: React.FC = () => {
+  const [selectedFacilityType, setSelectedFacilityType] = useState<'RENTAL' | 'PARKING'>('RENTAL');
   const [qrInput, setQrInput] = useState('QR-PARK-20260811-000125-TOKEN-SECURE');
   const [scanResult, setScanResult] = useState<CheckInResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -12,23 +14,104 @@ export const OwnerDashboardPage: React.FC = () => {
     e.preventDefault();
     if (!qrInput.trim()) return;
     setIsProcessing(true);
-    const res = await processCheckIn(qrInput.trim());
-    setScanResult(res);
-    setIsProcessing(false);
+    try {
+      const res = await processCheckIn(qrInput.trim());
+      setScanResult(res);
+    } catch (err) {
+      setScanResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Check-in failed. Please try again.',
+        action: 'INVALID',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Page Header */}
-      <div className="page-header">
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid var(--border-amber)', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>
-          <LayoutDashboard size={14} />
-          <span>Aluva Railway Station Parking Owner Portal</span>
+      {/* Facility Switcher Tabs for Owner */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'rgba(18, 24, 38, 0.8)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '14px',
+        padding: '12px 18px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <LayoutDashboard size={18} color="#38bdf8" />
+          <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.95rem' }}>Select Managed Facility:</span>
         </div>
-        <h1 className="page-title">Facility Owner Portal</h1>
-        <p className="page-subtitle">Real-time capacity occupancy gauges, entrance QR ticket scanning, and daily revenue analytics.</p>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setSelectedFacilityType('RENTAL')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: selectedFacilityType === 'RENTAL' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+              background: selectedFacilityType === 'RENTAL' ? 'rgba(16, 185, 129, 0.18)' : 'transparent',
+              color: selectedFacilityType === 'RENTAL' ? '#34d399' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Bike size={16} />
+            <span>Fort Kochi Wheels (Bike & Car Rental)</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedFacilityType('PARKING')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: selectedFacilityType === 'PARKING' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.1)',
+              background: selectedFacilityType === 'PARKING' ? 'rgba(245, 158, 11, 0.18)' : 'transparent',
+              color: selectedFacilityType === 'PARKING' ? '#fbbf24' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Car size={16} />
+            <span>Aluva Railway Station Parking</span>
+          </button>
+        </div>
       </div>
+
+      {/* RENTAL FACILITY VIEW */}
+      {selectedFacilityType === 'RENTAL' && (
+        <RentalOwnerRegister
+          facilityId="f5555555-5555-5555-5555-555555555555"
+          facilityName="Fort Kochi Wheels & Rentals"
+        />
+      )}
+
+      {/* PARKING FACILITY VIEW */}
+      {selectedFacilityType === 'PARKING' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          
+          {/* Page Header */}
+          <div className="page-header">
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid var(--border-amber)', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px' }}>
+              <LayoutDashboard size={14} />
+              <span>Aluva Railway Station Parking Owner Portal</span>
+            </div>
+            <h1 className="page-title">Parking Facility Owner Console</h1>
+            <p className="page-subtitle">Real-time capacity occupancy gauges, entrance QR ticket scanning, and daily parking revenue analytics.</p>
+          </div>
 
       {/* 4 Metric KPI Cards */}
       <div className="kpi-grid">
@@ -191,6 +274,8 @@ export const OwnerDashboardPage: React.FC = () => {
         </div>
 
       </div>
+    </div>
+  )}
 
     </div>
   );

@@ -163,7 +163,13 @@ export const AdminPortalPage: React.FC = () => {
                     <td style={{ fontWeight: 700, color: 'white' }}>{fac.name}</td>
                     <td style={{ color: '#cbd5e1' }}>{fac.district} ({fac.landmark || 'Kerala'})</td>
                     <td>
-                      <span className={`badge-tag ${fac.facilityType === 'PARKING' ? 'parking' : 'sports'}`} style={{ position: 'static' }}>
+                      <span 
+                        className={`badge-tag ${fac.facilityType === 'PARKING' ? 'parking' : fac.facilityType === 'RENTAL' ? 'rental' : 'sports'}`} 
+                        style={{ 
+                          position: 'static',
+                          ...(fac.facilityType === 'RENTAL' ? { background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#38bdf8' } : {})
+                        }}
+                      >
                         {fac.facilityType}
                       </span>
                     </td>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Facility } from '../types';
 import { searchFacilities } from '../services/api';
-import { Search, MapPin, Star, Car, Activity, Clock, CheckCircle, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Star, Car, Bike, Activity, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface CustomerSearchPageProps {
   activeCategory: 'ALL' | 'SPORTS' | 'PARKING' | 'RENTAL';
@@ -140,9 +140,14 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
           <div className="facility-grid">
             {facilities.map((facility) => {
               const isParking = facility.facilityType === 'PARKING';
-              const primaryPhoto = facility.photos[0] || (isParking 
-                ? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80' 
-                : 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80');
+              const isRental = facility.facilityType === 'RENTAL';
+              const primaryPhoto = facility.photos[0] || (
+                isRental 
+                  ? 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80'
+                  : isParking 
+                  ? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=800&q=80' 
+                  : 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80'
+              );
 
               return (
                 <div key={facility.facilityId} className="facility-card">
@@ -152,9 +157,12 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
                       <img src={primaryPhoto} alt={facility.name} />
                       <div className="card-overlay" />
 
-                      <div className={`badge-tag ${isParking ? 'parking' : 'sports'}`}>
-                        {isParking ? <Car size={12} /> : <Activity size={12} />}
-                        {isParking ? 'PARKING FACILITY' : 'SPORTS ARENA'}
+                      <div 
+                        className={`badge-tag ${isRental ? 'rental' : isParking ? 'parking' : 'sports'}`}
+                        style={isRental ? { background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#38bdf8' } : undefined}
+                      >
+                        {isRental ? <Bike size={12} /> : isParking ? <Car size={12} /> : <Activity size={12} />}
+                        {isRental ? 'BIKE & CAR RENTALS' : isParking ? 'PARKING FACILITY' : 'SPORTS ARENA'}
                       </div>
 
                       <div className="rating-badge">
@@ -197,7 +205,19 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
                         </div>
                       )}
 
-                      {!isParking && facility.resources.length > 0 && (
+                      {isRental && facility.resources.length > 0 && (
+                        <div className="availability-box" style={{ borderColor: 'rgba(56, 189, 248, 0.25)', background: 'rgba(56, 189, 248, 0.05)' }}>
+                          {facility.resources.map((r) => (
+                            <div key={r.resourceId} className="avail-row">
+                              <span className="name">{r.name}</span>
+                              <span style={{ color: '#38bdf8', fontWeight: 600 }}>Daily Rate</span>
+                              <span className="price">₹{r.pricePerHour}/day</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!isParking && !isRental && facility.resources.length > 0 && (
                         <div className="availability-box" style={{ borderColor: 'rgba(16, 185, 129, 0.25)', background: 'rgba(16, 185, 129, 0.05)' }}>
                           {facility.resources.map((r) => (
                             <div key={r.resourceId} className="avail-row">
@@ -220,9 +240,10 @@ export const CustomerSearchPage: React.FC<CustomerSearchPageProps> = ({
 
                     <button
                       onClick={() => onSelectFacility(facility)}
-                      className={`btn-book-now ${isParking ? 'parking' : 'sports'}`}
+                      className={`btn-book-now ${isRental ? 'rental' : isParking ? 'parking' : 'sports'}`}
+                      style={isRental ? { background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: 'white' } : undefined}
                     >
-                      <span>BOOK NOW</span>
+                      <span>{isRental ? 'RENT VEHICLE' : 'BOOK NOW'}</span>
                       <ArrowRight size={12} />
                     </button>
                   </div>

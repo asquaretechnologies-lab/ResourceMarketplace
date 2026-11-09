@@ -28,9 +28,25 @@ export const RentalOwnerRegister: React.FC<RentalOwnerRegisterProps> = ({
 
   // Modals state
   const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [pickupModalItem, setPickupModalItem] = useState<RentalBoardItem | null>(null);
   const [returnModalItem, setReturnModalItem] = useState<RentalBoardItem | null>(null);
   const [settleEstimate, setSettleEstimate] = useState<ReturnEstimate | null>(null);
+
+  // Add Vehicle Modal Form State (2-Wheeler vs 4-Wheeler)
+  const [addVehicleCategory, setAddVehicleCategory] = useState<'2W' | '4W'>('2W');
+  const [addMakeModel, setAddMakeModel] = useState('Honda Activa 6G');
+  const [addRegNumber, setAddRegNumber] = useState('');
+  const [addColor, setAddColor] = useState('Matte Black');
+  const [addYear, setAddYear] = useState(2024);
+  const [addPricePerDay, setAddPricePerDay] = useState(650);
+  const [addPricePerHour, setAddPricePerHour] = useState(70);
+  const [addDeposit, setAddDeposit] = useState(1000);
+  const [addOdo, setAddOdo] = useState(5000);
+  const [addFuel, setAddFuel] = useState(100);
+  const [addTransmission, setAddTransmission] = useState<'MANUAL' | 'AUTOMATIC'>('MANUAL');
+  const [addFuelType, setAddFuelType] = useState<'PETROL' | 'DIESEL' | 'EV'>('PETROL');
+  const [addSeats, setAddSeats] = useState(5);
 
   // Walk-in Form State
   const [walkInPhone, setWalkInPhone] = useState('');
@@ -332,6 +348,67 @@ export const RentalOwnerRegister: React.FC<RentalOwnerRegisterProps> = ({
     } finally {
       setWalkInSubmitting(false);
     }
+  };
+
+  const handleAddCategoryChange = (cat: '2W' | '4W') => {
+    setAddVehicleCategory(cat);
+    if (cat === '2W') {
+      setAddMakeModel('Honda Activa 6G');
+      setAddPricePerDay(650);
+      setAddPricePerHour(70);
+      setAddDeposit(1000);
+      setAddSeats(2);
+    } else {
+      setAddMakeModel('Maruti Swift ZXi');
+      setAddPricePerDay(2400);
+      setAddPricePerHour(220);
+      setAddDeposit(4000);
+      setAddSeats(5);
+    }
+  };
+
+  const handleAddVehicleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addRegNumber.trim()) {
+      alert('Please enter a valid vehicle registration number.');
+      return;
+    }
+
+    const parts = addMakeModel.split(' ');
+    const make = parts[0] || (addVehicleCategory === '2W' ? 'Honda' : 'Maruti');
+    const model = parts.slice(1).join(' ') || (addVehicleCategory === '2W' ? 'Activa 6G' : 'Swift ZXi');
+
+    const newVehicle: Vehicle = {
+      vehicleId: 'veh-' + Math.random().toString(36).substring(7),
+      facilityId,
+      vehicleModelId: addVehicleCategory === '2W' ? 1 : 4,
+      make,
+      model,
+      category: addVehicleCategory === '2W' ? 'BIKE' : 'CAR',
+      transmission: addVehicleCategory === '2W' ? 'AUTOMATIC' : addTransmission,
+      fuelType: addVehicleCategory === '2W' ? 'PETROL' : addFuelType,
+      seats: addVehicleCategory === '2W' ? 2 : addSeats,
+      rentalPlanId: 'rp-default',
+      rentalPlanName: addVehicleCategory === '2W' ? '2-Wheeler Daily Plan' : '4-Wheeler Daily Plan',
+      pricePerDay: Number(addPricePerDay),
+      pricePerHour: Number(addPricePerHour),
+      securityDepositAmount: Number(addDeposit),
+      registrationNumber: addRegNumber.trim().toUpperCase(),
+      color: addColor,
+      year: Number(addYear),
+      odometerKm: Number(addOdo),
+      fuelLevelPercent: Number(addFuel),
+      status: 'AVAILABLE',
+      isListedOnline: true,
+      photos: []
+    };
+
+    setFleet(prev => [newVehicle, ...prev]);
+    setActionSuccessMsg(
+      `${addVehicleCategory === '2W' ? '2-Wheeler' : '4-Wheeler'} ${addRegNumber.trim().toUpperCase()} (${make} ${model}) added to fleet successfully!`
+    );
+    setIsAddVehicleOpen(false);
+    setAddRegNumber('');
   };
 
   const handlePickupSubmit = async (e: React.FormEvent) => {
@@ -801,9 +878,36 @@ export const RentalOwnerRegister: React.FC<RentalOwnerRegisterProps> = ({
           borderRadius: '14px',
           padding: '20px'
         }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '16px' }}>
-            Registered Bikes & Cars ({fleet.length} Vehicles)
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                Registered Fleet ({fleet.length} Vehicles)
+              </h3>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Manage individual 2-wheelers and 4-wheelers available for rental
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsAddVehicleOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                border: 'none',
+                color: 'white',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+              }}
+            >
+              <Plus size={14} /> Add Vehicle to Fleet
+            </button>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {fleet.map(v => (
@@ -1391,6 +1495,341 @@ export const RentalOwnerRegister: React.FC<RentalOwnerRegisterProps> = ({
                   Complete Trip & Return Key
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: ADD VEHICLE TO FLEET (2-WHEELER / 4-WHEELER) */}
+      {isAddVehicleOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#121826',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '16px',
+            maxWidth: '560px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+                  {addVehicleCategory === '2W' ? <Bike size={18} /> : <Car size={18} />}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                    Add {addVehicleCategory === '2W' ? '2-Wheeler (Bike/Scooter)' : '4-Wheeler (Car/SUV)'} to Fleet
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Fields configure based on 2-wheeler or 4-wheeler requirements
+                  </span>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsAddVehicleOpen(false)} 
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Category Toggle: 2W vs 4W */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => handleAddCategoryChange('2W')}
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid',
+                  borderColor: addVehicleCategory === '2W' ? '#38bdf8' : 'rgba(255, 255, 255, 0.1)',
+                  background: addVehicleCategory === '2W' ? 'rgba(56, 189, 248, 0.2)' : '#0b111e',
+                  color: addVehicleCategory === '2W' ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Bike size={16} color={addVehicleCategory === '2W' ? '#38bdf8' : '#94a3b8'} />
+                <span>2-Wheeler (Bike/Scooter)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAddCategoryChange('4W')}
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid',
+                  borderColor: addVehicleCategory === '4W' ? '#10b981' : 'rgba(255, 255, 255, 0.1)',
+                  background: addVehicleCategory === '4W' ? 'rgba(16, 185, 129, 0.2)' : '#0b111e',
+                  color: addVehicleCategory === '4W' ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Car size={16} color={addVehicleCategory === '4W' ? '#34d399' : '#94a3b8'} />
+                <span>4-Wheeler (Car/SUV)</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddVehicleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              
+              {/* Model selection */}
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                  Select Vehicle Model *
+                </label>
+                <select
+                  value={addMakeModel}
+                  onChange={e => setAddMakeModel(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: '#0b111e',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#fff',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {addVehicleCategory === '2W' ? (
+                    <>
+                      <option value="Honda Activa 6G">Honda Activa 6G (110cc Scooter)</option>
+                      <option value="Suzuki Access 125">Suzuki Access 125 (125cc Scooter)</option>
+                      <option value="Royal Enfield Classic 350">Royal Enfield Classic 350 (Cruiser)</option>
+                      <option value="Royal Enfield Hunter 350">Royal Enfield Hunter 350 (Roadster)</option>
+                      <option value="Royal Enfield Himalayan 450">Royal Enfield Himalayan 450 (Adventure)</option>
+                      <option value="Ather 450X">Ather 450X (Electric Scooter)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Maruti Swift ZXi">Maruti Swift ZXi (Hatchback)</option>
+                      <option value="Hyundai i20">Hyundai i20 (Premium Hatchback)</option>
+                      <option value="Maruti Dzire">Maruti Dzire (Compact Sedan)</option>
+                      <option value="Mahindra Thar 4x4">Mahindra Thar 4x4 (Off-Road SUV)</option>
+                      <option value="Toyota Innova Crysta">Toyota Innova Crysta (7-Seater MUV)</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Reg Number & Color */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                    Registration Number *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. KL 07 CB 9988"
+                    value={addRegNumber}
+                    onChange={e => setAddRegNumber(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0b111e',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#38bdf8',
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Color
+                  </label>
+                  <input
+                    type="text"
+                    value={addColor}
+                    onChange={e => setAddColor(e.target.value)}
+                    placeholder="e.g. Matte Black"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0b111e',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#fff',
+                      fontSize: '0.85rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 4W Specific: Transmission, Fuel, Seats */}
+              {addVehicleCategory === '4W' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Transmission</label>
+                    <select
+                      value={addTransmission}
+                      onChange={e => setAddTransmission(e.target.value as any)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.75rem' }}
+                    >
+                      <option value="MANUAL">Manual</option>
+                      <option value="AUTOMATIC">Automatic</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Fuel Type</label>
+                    <select
+                      value={addFuelType}
+                      onChange={e => setAddFuelType(e.target.value as any)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.75rem' }}
+                    >
+                      <option value="PETROL">Petrol</option>
+                      <option value="DIESEL">Diesel</option>
+                      <option value="EV">Electric (EV)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Seats</label>
+                    <input
+                      type="number"
+                      value={addSeats}
+                      onChange={e => setAddSeats(Number(e.target.value))}
+                      min={2}
+                      max={9}
+                      style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.75rem' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing: Daily Rate, Hourly Rate, Security Deposit */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Daily Rent (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={addPricePerDay}
+                    onChange={e => setAddPricePerDay(Number(e.target.value))}
+                    min={100}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Hourly Rate (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={addPricePerHour}
+                    onChange={e => setAddPricePerHour(Number(e.target.value))}
+                    min={10}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Deposit (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={addDeposit}
+                    onChange={e => setAddDeposit(Number(e.target.value))}
+                    min={0}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Odometer and Fuel level */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Current Odometer (km)
+                  </label>
+                  <input
+                    type="number"
+                    value={addOdo}
+                    onChange={e => setAddOdo(Number(e.target.value))}
+                    min={0}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                    Initial Fuel (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={addFuel}
+                    onChange={e => setAddFuel(Number(e.target.value))}
+                    min={10}
+                    max={100}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#0b111e', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#fff', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddVehicleOpen(false)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ 
+                    flex: 1.5, 
+                    padding: '10px', 
+                    borderRadius: '8px', 
+                    background: addVehicleCategory === '2W' 
+                      ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' 
+                      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                    border: 'none', 
+                    color: '#fff', 
+                    fontWeight: 700, 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Plus size={16} /> Add {addVehicleCategory === '2W' ? '2-Wheeler' : '4-Wheeler'} to Fleet
+                </button>
+              </div>
+
             </form>
           </div>
         </div>
